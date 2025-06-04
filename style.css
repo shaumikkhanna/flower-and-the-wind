@@ -200,3 +200,22 @@ h1 {
 	transform-origin: center center;
 	pointer-events: none;
 }
+
+@media (max-width: 700px) {
+	#board {
+		grid-template-columns: repeat(5, 14vw);
+		grid-template-rows: repeat(5, 14vw);
+		gap: 2vw;
+		padding: 4vw;
+	}
+
+	.cell {
+		width: 14vw;
+		height: 14vw;
+		font-size: 6vw;
+	}
+
+	.seed {
+		font-size: 4vw;
+	}
+}
