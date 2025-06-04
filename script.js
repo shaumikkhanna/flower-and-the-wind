@@ -57,6 +57,12 @@ function createCompass() {
 		arrow.style.transformOrigin = "bottom center";
 		arrow.dataset.dir = `${dr},${dc}`;
 		arrow.onclick = () => blowWind(dr, dc);
+
+		const label = document.createElement("span");
+		label.className = "arrow-label";
+		label.textContent = name;
+
+		arrow.appendChild(label);
 		compass.appendChild(arrow);
 	});
 }
@@ -85,29 +91,32 @@ function triggerWindAnimation(dr, dc) {
 	gust.innerHTML = "";
 
 	const angle = Math.atan2(dr, dc) * (180 / Math.PI);
-	const moveDistance = "240px"; // how far to push the gust forward
+	const moveDistance = "120px"; // Less distance for smaller gusts
 
-	const positions = [
-		{ top: 60, left: 60 }, // top-left corner
-		{ top: 60, left: 300 }, // top-right corner
-		{ top: 180, left: 180 }, // center
-		{ top: 300, left: 60 }, // bottom-left
-		{ top: 300, left: 300 }, // bottom-right
-	];
+	const gridSize = 6; // 6x6 grid
+	const spacing = 100; // spacing between gusts
+	const offsetX = 50; // padding from left
+	const offsetY = 50; // padding from top
 
-	for (let i = 0; i < positions.length; i++) {
-		const outer = document.createElement("div");
-		outer.className = "wind-gust-image";
-		outer.style.top = `${positions[i].top}px`;
-		outer.style.left = `${positions[i].left}px`;
-		outer.style.transform = `rotate(${angle}deg)`;
+	for (let row = 0; row < gridSize; row++) {
+		for (let col = 0; col < gridSize; col++) {
+			const outer = document.createElement("div");
+			outer.className = "wind-gust-image";
+			outer.style.top = `${offsetY + row * spacing}px`;
+			outer.style.left = `${offsetX + col * spacing}px`;
+			outer.style.transform = `rotate(${angle}deg)`;
 
-		const inner = document.createElement("div");
-		inner.className = "gust-inner";
-		inner.style.setProperty("--move-distance", moveDistance);
+			const inner = document.createElement("div");
+			inner.className = "gust-inner";
+			inner.style.setProperty("--move-distance", moveDistance);
 
-		outer.appendChild(inner);
-		gust.appendChild(outer);
+			// Optional: Add a random delay for staggered effect
+			const delay = (Math.random() * 0.5).toFixed(2);
+			inner.style.animationDelay = `${delay}s`;
+
+			outer.appendChild(inner);
+			gust.appendChild(outer);
+		}
 	}
 }
 
@@ -151,25 +160,28 @@ function blowWind(dr, dc) {
 
 	const { newGrid, seedlings } = propagateSeeds(dr, dc);
 	grid = newGrid;
-	renderBoard();
 
-	status.textContent = "Seeds are growing...";
-
-	// Convert seedlings to flowers after 1 second
+	// ⏳ Delay seed appearance
 	setTimeout(() => {
-		for (let [r, c] of seedlings) {
-			grid[r][c] = 1;
-		}
 		renderBoard();
+		status.textContent = "Seeds are growing...";
 
-		moves++;
-		checkEnd();
-		if (!gameOver) {
-			status.textContent =
-				"Flower's turn: Click a cell to plant a flower";
-			setCompassEnabled(false);
-		}
-	}, 1000);
+		// 🌱 Delay flower growth
+		setTimeout(() => {
+			for (let [r, c] of seedlings) {
+				grid[r][c] = 1;
+			}
+			renderBoard();
+
+			moves++;
+			checkEnd();
+			if (!gameOver) {
+				status.textContent =
+					"Flower's turn: Click a cell to plant a flower";
+				setCompassEnabled(false);
+			}
+		}, 1000); // flower grows 1s after seeds appear
+	}, 300); // seeds appear 0.3s after propagation is computed
 }
 
 function checkEnd() {
