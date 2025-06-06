@@ -12,7 +12,8 @@ const SEEDLING = 2;
 
 const EMOJIS = {
 	[FLOWER]: "🌼",
-	[SEEDLING]: "🌱",
+	// [SEEDLING]: "🌱",
+	[SEEDLING]: "🌰",
 };
 
 function createCell(r, c) {
@@ -25,6 +26,7 @@ function createCell(r, c) {
 		cell.classList.add("flower");
 		cell.textContent = EMOJIS[FLOWER];
 	} else if (value === SEEDLING) {
+		cell.classList.add("seedling");
 		cell.textContent = EMOJIS[SEEDLING];
 	} else {
 		cell.onclick = () => plantFlower(r, c);
@@ -161,37 +163,20 @@ function blowWind(dr, dc) {
 	const { newGrid, seedlings } = propagateSeeds(dr, dc);
 	grid = newGrid;
 
-	// ⏳ Delay seed appearance
 	setTimeout(() => {
 		renderBoard();
-		status.textContent = "Seeds are growing...";
-
-		// 🌱 Delay flower growth
-		setTimeout(() => {
-			for (let [r, c] of seedlings) {
-				grid[r][c] = 1;
-			}
-			renderBoard();
-
-			moves++;
-			checkEnd();
-			if (!gameOver) {
-				status.textContent =
-					"Flower's turn: Click a cell to plant a flower";
-				setCompassEnabled(false);
-			}
-		}, 1000); // flower grows 1s after seeds appear
-	}, 300); // seeds appear 0.3s after propagation is computed
+		status.textContent = "Your turn: Plant a flower";
+		setCompassEnabled(false);
+		checkEnd();
+	}, 500);
 }
 
 function checkEnd() {
-	const filled = grid.flat().filter((x) => x).length;
-	if (filled === size * size) {
-		status.textContent = "🌼 Flower wins!";
+	const anyEmpty = grid.some((row) => row.includes(EMPTY));
+	if (!anyEmpty) {
 		gameOver = true;
-	} else if (moves === 7) {
-		status.textContent = "🌬️ Wind wins!";
-		gameOver = true;
+		status.textContent = "Game over! The board is full 🌼🌱";
+		setCompassEnabled(false);
 	}
 }
 
