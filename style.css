@@ -219,3 +219,17 @@ h1 {
 		font-size: 4vw;
 	}
 }
+
+.play-again-button {
+	padding: 10px 20px;
+	font-size: 1rem;
+	background-color: #8cbc3e;
+	color: white;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	margin-top: 20px;
+}
+.play-again-button:hover {
+	background-color: #78a532;
+}

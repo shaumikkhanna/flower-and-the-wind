@@ -6,6 +6,9 @@ let usedDirections = new Set();
 let moves = 0;
 let gameOver = false;
 
+const urlParams = new URLSearchParams(window.location.search);
+const mode = urlParams.get("mode"); // 'pass' , 'cpu-wind' , 'cpu-flower'
+
 const EMPTY = 0;
 const FLOWER = 1;
 const SEEDLING = 2;
@@ -82,8 +85,15 @@ function plantFlower(r, c) {
 	if (gameOver || grid[r][c]) return;
 	grid[r][c] = 1;
 	renderBoard();
-	status.textContent = "Wind's turn: Choose a direction to blow";
-	setCompassEnabled(true);
+
+	if (mode === "cpu-wind") {
+		status.textContent = "CPU is blowing the wind...";
+		setTimeout(cpuWindMove, 600);
+	} else {
+		status.textContent = "Wind's turn: Choose a direction to blow";
+		setCompassEnabled(true);
+	}
+
 	board.querySelectorAll(".cell").forEach((cell) => (cell.onclick = null));
 	checkEnd();
 }
@@ -165,19 +175,80 @@ function blowWind(dr, dc) {
 
 	setTimeout(() => {
 		renderBoard();
-		status.textContent = "Your turn: Plant a flower";
 		setCompassEnabled(false);
 		checkEnd();
+
+		if (!gameOver) {
+			if (mode === "cpu-flower") {
+				status.textContent = "CPU is planting a flower...";
+				setTimeout(cpuFlowerMove, 600);
+			} else {
+				status.textContent =
+					"Flower's turn: Click a cell to plant a flower";
+			}
+		}
 	}, 500);
 }
 
 function checkEnd() {
+	if (gameOver) return;
+
 	const anyEmpty = grid.some((row) => row.includes(EMPTY));
+	const directionsUsed = usedDirections.size;
+
 	if (!anyEmpty) {
 		gameOver = true;
-		status.textContent = "Game over! The board is full 🌼🌱";
-		setCompassEnabled(false);
+		status.textContent = "🌼 Flower wins! The board is full!";
+		endGame();
+	} else if (directionsUsed >= 7) {
+		gameOver = true;
+		status.textContent = "Wind wins! Flower could not fill the board!";
+		endGame();
 	}
+}
+
+function endGame() {
+	setCompassEnabled(false);
+	disableBoard();
+
+	const controls = document.getElementById("end-controls");
+	controls.innerHTML = ""; // Clear any existing content
+
+	const button = document.createElement("button");
+	button.textContent = "Play Again";
+	button.className = "play-again-button";
+	button.onclick = resetGame;
+
+	controls.appendChild(button);
+}
+
+function resetGame() {
+	grid = Array.from({ length: size }, () => Array(size).fill(0));
+	usedDirections = new Set();
+	moves = 0;
+	gameOver = false;
+
+	const gust = document.getElementById("wind-gust");
+	if (gust) gust.innerHTML = "";
+
+	status.textContent = "Flower's turn: Click a cell to plant a flower";
+	document.getElementById("end-controls").innerHTML = "";
+
+	renderBoard();
+	setCompassEnabled(false);
+
+	// Reactivate all arrows
+	document.querySelectorAll(".radial-compass .arrow").forEach((arrow) => {
+		arrow.style.pointerEvents = "auto";
+		arrow.style.opacity = "1";
+	});
+}
+
+function disableBoard() {
+	board.querySelectorAll(".cell").forEach((cell) => {
+		cell.onclick = null;
+		cell.classList.remove("clickable");
+	});
 }
 
 function setCompassEnabled(enabled) {
@@ -190,6 +261,93 @@ function setCompassEnabled(enabled) {
 	});
 }
 
+function cpuFlowerMove() {
+	if (gameOver) return;
+
+	let bestCell = null;
+	let bestScore = -Infinity;
+
+	for (let r = 0; r < size; r++) {
+		for (let c = 0; c < size; c++) {
+			if (grid[r][c] !== EMPTY) continue;
+
+			// Score: prefer center, avoid clustering
+			let distFromCenter = Math.abs(r - 2) + Math.abs(c - 2);
+			let neighborPenalty = 0;
+
+			for (let dr = -1; dr <= 1; dr++) {
+				for (let dc = -1; dc <= 1; dc++) {
+					const nr = r + dr,
+						nc = c + dc;
+					if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+						if (grid[nr][nc] !== EMPTY) neighborPenalty++;
+					}
+				}
+			}
+
+			const score = -distFromCenter * 2 - neighborPenalty;
+
+			if (score > bestScore) {
+				bestScore = score;
+				bestCell = [r, c];
+			}
+		}
+	}
+
+	if (bestCell) {
+		const [r, c] = bestCell;
+		grid[r][c] = FLOWER;
+		renderBoard();
+		status.textContent = "Wind's turn: Choose a direction to blow";
+		setCompassEnabled(true);
+		checkEnd();
+	}
+}
+
+function cpuWindMove() {
+	if (gameOver) return;
+
+	let bestDir = null;
+	let bestSeedCount = -1;
+
+	for (const { dr, dc } of directionMap) {
+		const key = `${dr},${dc}`;
+		if (usedDirections.has(key)) continue;
+
+		let count = 0;
+
+		for (let r = 0; r < size; r++) {
+			for (let c = 0; c < size; c++) {
+				if (grid[r][c] !== FLOWER) continue;
+
+				let nr = r + dr,
+					nc = c + dc;
+				while (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+					if (grid[nr][nc] === EMPTY) count++;
+					nr += dr;
+					nc += dc;
+				}
+			}
+		}
+
+		if (count > bestSeedCount) {
+			bestSeedCount = count;
+			bestDir = { dr, dc };
+		}
+	}
+
+	if (bestDir) {
+		blowWind(bestDir.dr, bestDir.dc);
+	}
+}
+
 renderBoard();
 createCompass();
 setCompassEnabled(false);
+
+if (mode === "cpu-flower") {
+	// CPU starts with flower move
+	setTimeout(cpuFlowerMove, 600);
+} else {
+	status.textContent = "Flower's turn: Click a cell to plant a flower";
+}
