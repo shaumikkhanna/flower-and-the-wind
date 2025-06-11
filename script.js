@@ -217,31 +217,9 @@ function endGame() {
 	const button = document.createElement("button");
 	button.textContent = "Play Again";
 	button.className = "play-again-button";
-	button.onclick = resetGame;
+	button.onclick = () => location.reload();
 
 	controls.appendChild(button);
-}
-
-function resetGame() {
-	grid = Array.from({ length: size }, () => Array(size).fill(0));
-	usedDirections = new Set();
-	moves = 0;
-	gameOver = false;
-
-	const gust = document.getElementById("wind-gust");
-	if (gust) gust.innerHTML = "";
-
-	status.textContent = "Flower's turn: Click a cell to plant a flower";
-	document.getElementById("end-controls").innerHTML = "";
-
-	renderBoard();
-	setCompassEnabled(false);
-
-	// Reactivate all arrows
-	document.querySelectorAll(".radial-compass .arrow").forEach((arrow) => {
-		arrow.style.pointerEvents = "auto";
-		arrow.style.opacity = "1";
-	});
 }
 
 function disableBoard() {
